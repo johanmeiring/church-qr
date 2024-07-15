@@ -16,14 +16,15 @@ import (
 	"time"
 )
 
-// go:embed doxa.png
-//var doxaPNGFile []byte
+type Church struct {
+	Name string
+	Logo string
+}
 
-// go:embed waterkloofags.png
-//var waterkloofagsPNGFile []byte
-
-// go:embed templates/*.gohtml
-//var templateDir embed.FS
+var Churches = map[string]Church{
+	"doxa":          {"Doxa Deo", "doxa.png"},
+	"waterkloofags": {"Waterkloof AGS", "waterkloofags.png"},
+}
 
 func ConfigRuntime() {
 	nuCPU := runtime.NumCPU()
@@ -37,7 +38,8 @@ func StartGin() {
 	router := gin.New()
 	router.LoadHTMLGlob("templates/*.gohtml")
 	router.GET("/", index)
-	router.POST("/", generateQRCode)
+	router.GET("/:name", church)
+	router.POST("/:name", generateQRCode)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -49,39 +51,38 @@ func StartGin() {
 }
 
 func index(c *gin.Context) {
+	c.Redirect(http.StatusMovedPermanently, "/doxa")
+}
+
+func church(c *gin.Context) {
+	selectedChurch, okay := Churches[c.Param("name")]
+	if !okay {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
 	c.HTML(http.StatusOK, "index.gohtml", gin.H{
-		"Church": churchName(),
+		"Church": selectedChurch.Name,
 	})
 }
 
-func churchName() string {
-	name := os.Getenv("CHURCH_NAME")
-	if name == "" {
-		name = "Doxa Deo"
-	}
-	return name
-}
-
-func churchLogo() string {
-	logo := os.Getenv("CHURCH_LOGO")
-	if logo == "" {
-		logo = "doxa.png"
-	}
-	return logo
-}
-
 func generateQRCode(c *gin.Context) {
+	selectedChurch, okay := Churches[c.Param("name")]
+	if !okay {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
 	downloadName := fmt.Sprintf("qrcode-%d.jpeg", time.Now().Unix())
 
-	header := c.Writer.Header()
-	header["Content-type"] = []string{"application/octet-stream"}
-	header["Content-Disposition"] = []string{"attachment; filename= " + downloadName}
+	//header := c.Writer.Header()
+	//header["Content-type"] = []string{"application/octet-stream"}
+	//header["Content-Disposition"] = []string{"attachment; filename= " + downloadName}
 
-	imageBytes, err := os.ReadFile(churchLogo())
+	imageBytes, err := os.ReadFile(selectedChurch.Logo)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	//img, _, err := image.Decode(bytes.NewReader(doxaPNGFile))
 	img, _, err := image.Decode(bytes.NewReader(imageBytes))
 	if err != nil {
 		log.Fatalln(err)
