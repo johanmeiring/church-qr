@@ -75,6 +75,7 @@ func generateQRCode(c *gin.Context) {
 
 	downloadName := fmt.Sprintf("qrcode-%d.jpeg", time.Now().Unix())
 
+	//  Uncomment the following three lines to force download.
 	//header := c.Writer.Header()
 	//header["Content-type"] = []string{"application/octet-stream"}
 	//header["Content-Disposition"] = []string{"attachment; filename= " + downloadName}
